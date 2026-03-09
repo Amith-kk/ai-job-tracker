@@ -8,7 +8,7 @@ dotenv.config()
 const app: Application = express()
 const PORT = process.env.PORT || 5000
 
-// ─── Middleware ───────────────────────────────────────────
+// Middleware
 // Parse incoming JSON requests
 app.use(express.json())
 
@@ -21,7 +21,7 @@ app.use(cors({
   credentials: true
 }))
 
-// ─── Health Check Route ───────────────────────────────────
+//  Health Check Route
 // Used by Docker, deployment platforms to verify server is alive
 app.get("/health", (req: Request, res: Response) => {
   res.status(200).json({
@@ -32,7 +32,7 @@ app.get("/health", (req: Request, res: Response) => {
   })
 }) 
 
-// ─── Start Server ─────────────────────────────────────────
+//  Start Server 
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`)
   console.log(`📡 Health check: http://localhost:${PORT}/health`)
