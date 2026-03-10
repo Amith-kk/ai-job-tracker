@@ -2,6 +2,7 @@ import express, { Application, Request, Response } from "express"
 import cors from "cors"
 import dotenv from "dotenv"
 import connectDB from "./config/db"
+import authRoutes from "./routes/auth.routes"
 
 // Load environment variables 
 dotenv.config()
@@ -24,6 +25,11 @@ app.use(cors({
   origin: process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000",
   credentials: true
 }))
+
+
+// Routes
+app.use("/api/auth", authRoutes)
+
 
 //  Health Check Route
 // Used by Docker, deployment platforms to verify server is alive
