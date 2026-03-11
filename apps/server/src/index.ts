@@ -3,6 +3,8 @@ import cors from "cors"
 import dotenv from "dotenv"
 import connectDB from "./config/db"
 import authRoutes from "./routes/auth.routes"
+import jobRoutes from "./routes/job.routes"
+
 
 // Load environment variables 
 dotenv.config()
@@ -29,6 +31,7 @@ app.use(cors({
 
 // Routes
 app.use("/api/auth", authRoutes)
+app.use("/api/jobs", jobRoutes)
 
 
 //  Health Check Route

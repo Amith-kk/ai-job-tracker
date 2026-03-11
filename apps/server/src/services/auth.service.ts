@@ -2,7 +2,7 @@ import User, { IUser } from "../models/User.model"
 import { generateToken } from "../utils/jwt.utils"
 import { RegisterPayload, AuthResponse } from "@repo/types"
 
-// ─── Register Service ─────────────────────────────────────
+//  Register Service 
 export const registerUser = async (
   data: RegisterPayload
 ): Promise<AuthResponse> => {
@@ -31,7 +31,7 @@ export const registerUser = async (
   }
 }
 
-// ─── Login Service ────────────────────────────────────────
+//  Login Service 
 export const loginUser = async (
   email: string,
   password: string
@@ -40,8 +40,6 @@ export const loginUser = async (
   const user = await User.findOne({ email }).select("+password") as IUser | null
 
   if (!user) {
-    // IMPORTANT: Same error message for wrong email OR wrong password
-    // Never tell attackers which one is wrong — security best practice
     throw new Error("Invalid email or password")
   }
 
