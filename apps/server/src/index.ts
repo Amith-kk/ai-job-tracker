@@ -2,6 +2,7 @@ import express, { Application, Request, Response } from "express"
 import cors from "cors"
 import dotenv from "dotenv"
 import connectDB from "./config/db"
+import { connectRedis } from "./config/redis"
 import authRoutes from "./routes/auth.routes"
 import jobRoutes from "./routes/job.routes"
 
@@ -11,6 +12,8 @@ dotenv.config()
 
 // Connect to database
 connectDB()
+
+connectRedis()
 
 const app: Application = express()
 const PORT = process.env.PORT || 5000

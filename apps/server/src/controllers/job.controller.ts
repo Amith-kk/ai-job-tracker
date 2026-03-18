@@ -13,7 +13,7 @@ import { sendSuccess, sendError } from "../utils/apiResponse.utils"
 const getParam = (param: string | string[]): string => 
   Array.isArray(param) ? param[0] : param
 
-// ─── Create Job ───────────────────────────────────────────
+//  Create Job 
 export const create = async (req: Request, res: Response): Promise<void> => {
   try {
     // req.user.id is set by auth middleware — guaranteed to exist on protected routes
@@ -25,7 +25,7 @@ export const create = async (req: Request, res: Response): Promise<void> => {
   }
 }
 
-// ─── Get All Jobs ─────────────────────────────────────────
+//  Get All Jobs 
 export const getAll = async (req: Request, res: Response): Promise<void> => {
   try {
     // Extract query params for filtering and sorting
@@ -40,7 +40,7 @@ export const getAll = async (req: Request, res: Response): Promise<void> => {
   }
 }
 
-// ─── Get Single Job ───────────────────────────────────────
+//  Get Single Job 
 export const getOne = async (req: Request, res: Response): Promise<void> => {
   try {
     // req.params.id = the :id part from /api/jobs/:id
@@ -53,7 +53,7 @@ export const getOne = async (req: Request, res: Response): Promise<void> => {
   }
 }
 
-// ─── Update Job ───────────────────────────────────────────
+//  Update Job 
 export const update = async (req: Request, res: Response): Promise<void> => {
   try {
     const job = await updateJob(getParam(req.params.id), req.user!.id, req.body)
@@ -65,7 +65,7 @@ export const update = async (req: Request, res: Response): Promise<void> => {
   }
 }
 
-// ─── Delete Job ───────────────────────────────────────────
+//  Delete Job 
 export const remove = async (req: Request, res: Response): Promise<void> => {
   try {
     await deleteJob(getParam(req.params.id), req.user!.id)
@@ -79,7 +79,7 @@ export const remove = async (req: Request, res: Response): Promise<void> => {
   }
 }
 
-// ─── Get Stats ────────────────────────────────────────────
+//  Get Stats 
 export const getStats = async (req: Request, res: Response): Promise<void> => {
   try {
     const stats = await getJobStats(req.user!.id)

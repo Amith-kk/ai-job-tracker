@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express"
 import { verifyToken } from "../utils/jwt.utils"
 import User from "../models/User.model"
 
-// ─── Extend Express Request Type ─────────────────────────
+//  Extend Express Request Type 
 // By default req.user doesn't exist in Express
 // We tell TypeScript "trust me, req.user will exist after this middleware"
 declare global {
@@ -17,7 +17,7 @@ declare global {
   }
 }
 
-// ─── Auth Middleware ──────────────────────────────────────
+//  Auth Middleware 
 export const protect = async (
   req: Request,
   res: Response,

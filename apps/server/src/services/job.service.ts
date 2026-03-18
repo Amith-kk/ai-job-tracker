@@ -1,9 +1,21 @@
 import Job, { IJob } from "../models/Job.model"
 import { CreateJobInput, UpdateJobInput } from "../validations/job.validation"
+import { getCache, setCache, deleteByPattern } from "../utils/cache.utils"
+
+//  Cache TTL Constants 
+const STATS_TTL = 300   // 5 minutes
+const JOBS_TTL = 60     // 1 minute
+
+//  Cache Key Helpers 
+// Centralized key generation — change key format in one place
+const cacheKeys = {
+  stats: (userId: string) => `jobs:stats:${userId}`,
+  all: (userId: string, filters: string) => `jobs:all:${userId}:${filters}`,
+  one: (jobId: string) => `jobs:one:${jobId}`,
+  userPattern: (userId: string) => `jobs:*:${userId}*`
+}
 
 //  Create Job 
-// Takes validated data + userId from auth middleware
-// Creates job in MongoDB and returns it
 export const createJob = async (
   userId: string,
   data: CreateJobInput["body"]
@@ -11,138 +23,142 @@ export const createJob = async (
   const job = await Job.create({
     userId,
     ...data,
-    // Convert string date to Date object if provided
-    // Otherwise use current date as default
     appliedDate: data.appliedDate ? new Date(data.appliedDate) : new Date()
   })
+
+  // Invalidate all job caches for this user
+  // Their job list and stats are now outdated
+  await deleteByPattern(cacheKeys.userPattern(userId))
 
   return job
 }
 
-// ─── Get All Jobs ─────────────────────────────────────────
-// CRITICAL: Always filter by userId
-// User can only ever see THEIR jobs — never another user's
-// Optional status filter — GET /api/jobs?status=applied
-// Optional sort — GET /api/jobs?sort=latest or sort=oldest
+//  Get All Jobs 
 export const getAllJobs = async (
   userId: string,
-  filters: {
-    status?: string
-    sort?: string
-  }
+  filters: { status?: string; sort?: string }
 ): Promise<IJob[]> => {
 
-  // Start building query — userId filter is ALWAYS applied
+  // Create unique cache key including filters
+  // Different filters = different cached results
+  const filterString = JSON.stringify(filters)
+  const cacheKey = cacheKeys.all(userId, filterString)
+
+  // 1. Check cache first
+  const cached = await getCache<IJob[]>(cacheKey)
+  if (cached) {
+    console.log("📦 Cache hit: jobs list")
+    return cached
+  }
+
+  // 2. Cache miss — fetch from MongoDB
+  console.log("🔍 Cache miss: fetching jobs from MongoDB")
   const query: Record<string, unknown> = { userId }
 
-  // If status filter provided — add it to query
-  // GET /api/jobs?status=applied → only returns applied jobs
   if (filters.status && filters.status !== "all") {
     query.status = filters.status
   }
 
-  // Sort direction — latest first by default
   const sortOrder = filters.sort === "oldest" ? 1 : -1
+  const jobs = await Job.find(query).sort({ createdAt: sortOrder })
 
-  const jobs = await Job
-    .find(query)
-    .sort({ createdAt: sortOrder })  // newest jobs first by default
+  // 3. Store in cache for next request
+  await setCache(cacheKey, jobs, JOBS_TTL)
 
   return jobs
 }
 
-// ─── Get Single Job ───────────────────────────────────────
-// Finds ONE job by its MongoDB _id
-// Then verifies it belongs to the requesting user
-// This is called an OWNERSHIP CHECK — critical for security
+//  Get Single Job 
 export const getJobById = async (
   jobId: string,
   userId: string
 ): Promise<IJob> => {
-  const job = await Job.findById(jobId)
+  // Check cache
+  const cacheKey = cacheKeys.one(jobId)
+  const cached = await getCache<IJob>(cacheKey)
 
-  // Job doesn't exist at all
-  if (!job) {
-    throw new Error("Job not found")
+  if (cached) {
+    // Still verify ownership even on cached data
+    if (cached.userId.toString() !== userId) {
+      throw new Error("Job not found")
+    }
+    console.log("📦 Cache hit: single job")
+    return cached
   }
 
-  // Job exists but belongs to a different user
-  // We throw the same "not found" error — never confirm to an attacker
-  // that a resource exists but they can't access it
+  // Cache miss — fetch from MongoDB
+  const job = await Job.findById(jobId)
+
+  if (!job) throw new Error("Job not found")
+
   if (job.userId.toString() !== userId) {
     throw new Error("Job not found")
   }
+
+  // Cache the job
+  await setCache(cacheKey, job, JOBS_TTL)
 
   return job
 }
 
 // ─── Update Job ───────────────────────────────────────────
-// First verifies ownership by calling getJobById
-// Then updates only the fields that were sent
-// { new: true } returns the UPDATED document not the old one
 export const updateJob = async (
   jobId: string,
   userId: string,
   data: UpdateJobInput["body"]
 ): Promise<IJob> => {
-  // This handles both "not found" AND "not your job" cases
   await getJobById(jobId, userId)
 
   const updatedJob = await Job.findByIdAndUpdate(
     jobId,
     {
       ...data,
-      // Convert date string if provided
       ...(data.appliedDate && { appliedDate: new Date(data.appliedDate) })
     },
-    {
-      new: true,           // return updated document
-      runValidators: true  // run mongoose schema validators on update too
-    }
+    { new: true, runValidators: true }
   )
 
-  if (!updatedJob) {
-    throw new Error("Job not found")
-  }
+  if (!updatedJob) throw new Error("Job not found")
+
+  // Invalidate this specific job cache AND all list/stats caches
+  await deleteByPattern(cacheKeys.userPattern(userId))
 
   return updatedJob
 }
 
 // ─── Delete Job ───────────────────────────────────────────
-// Verifies ownership first then deletes
 export const deleteJob = async (
   jobId: string,
   userId: string
 ): Promise<void> => {
-  // Ownership check first
   await getJobById(jobId, userId)
-
   await Job.findByIdAndDelete(jobId)
+
+  // Invalidate all caches for this user
+  await deleteByPattern(cacheKeys.userPattern(userId))
 }
 
 // ─── Get Job Stats ────────────────────────────────────────
-// Returns count of jobs per status for dashboard charts
-// This is what powers the Recharts pie/bar chart on frontend
-// MongoDB aggregation pipeline — groups and counts documents
 export const getJobStats = async (
   userId: string
 ): Promise<Record<string, number>> => {
-  const stats = await Job.aggregate([
-    // Stage 1: Only look at this user's jobs
-    { $match: { userId: new (require("mongoose").Types.ObjectId)(userId) } },
+  const cacheKey = cacheKeys.stats(userId)
 
-    // Stage 2: Group by status and count each group
-    {
-      $group: {
-        _id: "$status",   // group by the status field
-        count: { $sum: 1 } // count documents in each group
-      }
-    }
+  // 1. Check cache
+  const cached = await getCache<Record<string, number>>(cacheKey)
+  if (cached) {
+    console.log("📦 Cache hit: job stats")
+    return cached
+  }
+
+  // 2. Cache miss — run expensive aggregation
+  console.log("🔍 Cache miss: running aggregation")
+  const mongoose = require("mongoose")
+  const stats = await Job.aggregate([
+    { $match: { userId: new mongoose.Types.ObjectId(userId) } },
+    { $group: { _id: "$status", count: { $sum: 1 } } }
   ])
 
-  // Convert array format to object format
-  // From: [{ _id: "applied", count: 5 }, { _id: "rejected", count: 3 }]
-  // To:   { applied: 5, rejected: 3, interview: 0, ... }
   const result: Record<string, number> = {
     wishlist: 0,
     applied: 0,
@@ -152,10 +168,13 @@ export const getJobStats = async (
     total: 0
   }
 
-  stats.forEach(stat => {
+  stats.forEach((stat: { _id: string; count: number }) => {
     result[stat._id] = stat.count
     result.total += stat.count
   })
+
+  // 3. Cache for 5 minutes
+  await setCache(cacheKey, result, STATS_TTL)
 
   return result
 }
