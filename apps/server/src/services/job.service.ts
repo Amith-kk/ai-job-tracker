@@ -20,7 +20,7 @@ export const createJob = async (
   userId: string,
   data: CreateJobInput["body"]
 ): Promise<IJob> => {
-  const job = await Job.create({
+  const job = await Job.create({ 
     userId,
     ...data,
     appliedDate: data.appliedDate ? new Date(data.appliedDate) : new Date()

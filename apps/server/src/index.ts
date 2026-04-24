@@ -5,6 +5,7 @@ import connectDB from "./config/db"
 import { connectRedis } from "./config/redis"
 import authRoutes from "./routes/auth.routes"
 import jobRoutes from "./routes/job.routes"
+import aiRoutes from "./routes/ai.routes"
 
 
 // Load environment variables 
@@ -35,6 +36,7 @@ app.use(cors({
 // Routes
 app.use("/api/auth", authRoutes)
 app.use("/api/jobs", jobRoutes)
+app.use("/api/ai", aiRoutes)
 
 
 //  Health Check Route
