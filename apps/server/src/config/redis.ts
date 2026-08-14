@@ -30,5 +30,5 @@ export const connectRedis = async (): Promise<void> => {
     console.error("❌ Redis connection failed:", error)
   }
 }
-
+ 
 export default redisClient

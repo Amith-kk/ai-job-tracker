@@ -3,4 +3,4 @@
   "ext": "ts,json",
   "ignore": ["src/**/*.test.ts"],
   "exec": "ts-node --project tsconfig.json src/index.ts"
-}
+} 

@@ -31,8 +31,13 @@ axiosInstance.interceptors.request.use(
 // Clear storage and redirect to login
 axiosInstance.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
+  (error) =>{
+    // Check if the user is currently on an auth page
+    const isAuthPage = 
+      window.location.pathname === "/login" || 
+      window.location.pathname === "/register"
+
+    if (error.response?.status === 401 && !isAuthPage) {
       localStorage.removeItem("token")
       localStorage.removeItem("user")
       window.location.href = "/login"
