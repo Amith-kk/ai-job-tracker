@@ -1,0 +1,62 @@
+# ─── CI Workflow ──────────────────────────────────────────
+# Runs on every push and pull request
+# Checks that code compiles without errors
+
+name: CI
+
+# When to run this workflow
+on:
+  push:
+    branches: [main]      # runs when you push to main
+  pull_request:
+    branches: [main]      # runs when someone opens a PR to main
+
+jobs:
+  # ─── Backend Check ──────────────────────────────────────
+  backend:
+    name: Backend TypeScript Check
+    runs-on: ubuntu-latest    # GitHub provides this Linux machine
+
+    steps:
+      # Step 1 — Download your code onto the GitHub machine
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2 — Install Node.js 20
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"        # cache node_modules between runs
+
+      # Step 3 — Install all dependencies
+      - name: Install dependencies
+        run: npm install
+
+      # Step 4 — Check TypeScript compiles without errors
+      - name: TypeScript check
+        run: npx tsc --noEmit
+        working-directory: apps/server
+
+  # ─── Frontend Check ─────────────────────────────────────
+  frontend:
+    name: Frontend Build Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm install
+
+      # Build React app — fails if any errors exist
+      - name: Build frontend
+        run: npm run build
+        working-directory: apps/web

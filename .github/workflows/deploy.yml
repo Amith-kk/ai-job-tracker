@@ -1,0 +1,48 @@
+# ─── Deploy Workflow ──────────────────────────────────────
+# Runs only when CI passes on main branch
+# Builds Docker images and pushes to Docker Hub
+
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+# Only run deploy AFTER ci workflow passes
+# Prevents deploying broken code
+jobs:
+  deploy:
+    name: Build and Push Docker Images
+    runs-on: ubuntu-latest
+    needs: []   # add "ci" here once you have tests
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Login to Docker Hub using secrets
+      # Secrets are stored in GitHub — never in code
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      # Build and push backend image
+      - name: Build and push backend
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: apps/server/Dockerfile
+          push: true
+          # image name: yourusername/ai-job-tracker-backend
+          tags: ${{ secrets.DOCKER_USERNAME }}/ai-job-tracker-backend:latest
+
+      # Build and push frontend image
+      - name: Build and push frontend
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: apps/web/Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/ai-job-tracker-frontend:latest
