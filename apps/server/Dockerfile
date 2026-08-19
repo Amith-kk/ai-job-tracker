@@ -51,4 +51,4 @@ EXPOSE 5000
 
 # Start the compiled JavaScript server
 # No ts-node in production — runs compiled JS directly
-CMD ["node", "apps/server/dist/src/index.js"]
+CMD ["node", "apps/server/dist/index.js"]
