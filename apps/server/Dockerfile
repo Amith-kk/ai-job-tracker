@@ -23,8 +23,12 @@ COPY apps/server ./apps/server
 
 # Compile TypeScript to JavaScript
 # Output goes to apps/server/dist/
-RUN npm run build --workspace=apps/server
 
+# 1. Build shared types first
+RUN npm run build --workspace=packages/types
+
+# 2. Then build server
+RUN npm run build --workspace=apps/server
 # ─── Stage 2: Production ──────────────────────────────────
 # Fresh image — only production code, no build tools
 # This keeps the final image small and secure
