@@ -4,7 +4,7 @@ import axios from "axios"
 // Base URL uses Vite proxy — /api → localhost:5000/api
 // This means you never hardcode the backend URL
 const axiosInstance = axios.create({
-  baseURL: "/api",
+  baseURL: import.meta.env.VITE_API_URL || "/api",
   headers: {
     "Content-Type": "application/json"
   }

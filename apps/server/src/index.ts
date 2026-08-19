@@ -29,8 +29,11 @@ app.use(express.urlencoded({ extended: true }))
 // Allow frontend to call this backend
 app.use(cors({
   origin: process.env.NODE_ENV === "production"
-    ? ["http://localhost", "http://localhost:80"]
-    : process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000",
+    ? [
+        process.env.FRONTEND_URL || "",
+        "https://ai-job-tracker-web.vercel.app"     
+      ]
+    : "http://localhost:3000",
   credentials: true
 }))
 
