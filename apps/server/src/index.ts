@@ -27,16 +27,35 @@ app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
 // Allow frontend to call this backend
-app.use(cors({
-  origin: process.env.NODE_ENV === "production"
-    ? [
-        process.env.FRONTEND_URL || "",
-        "https://ai-job-tracker-web.vercel.app"     
-      ]
-    : "http://localhost:3000",
-  credentials: true
-}))
 
+
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:5173',
+  process.env.CLIENT_URL,
+].filter(Boolean) as string[];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps, curl, Postman)
+      if (!origin) return callback(null, true);
+
+      // Check explicit allowed origins or match ANY *.vercel.app domain
+      const isVercelDomain = /\.vercel\.app$/.test(origin);
+      const isAllowed = allowedOrigins.includes(origin) || isVercelDomain;
+
+      if (isAllowed) {
+        callback(null, true);
+      } else {
+        callback(new Error(`CORS blocked for origin: ${origin}`));
+      }
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  })
+);
 
 // Routes
 app.use("/api/auth", authRoutes)
