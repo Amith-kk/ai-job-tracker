@@ -28,7 +28,9 @@ app.use(express.urlencoded({ extended: true }))
 
 // Allow frontend to call this backend
 app.use(cors({
-  origin: process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000",
+  origin: process.env.NODE_ENV === "production"
+    ? ["http://localhost", "http://localhost:80"]
+    : process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000",
   credentials: true
 }))
 

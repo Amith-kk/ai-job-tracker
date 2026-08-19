@@ -1,0 +1,84 @@
+version: "3.8"
+
+services:
+
+  # ─── MongoDB ──────────────────────────────────────────────
+  mongodb:
+    image: mongo:7          # official MongoDB image from Docker Hub
+    container_name: ai-job-tracker-mongo
+    restart: unless-stopped # restart if crashes, stop if manually stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password123
+      MONGO_INITDB_DATABASE: ai-job-tracker
+    volumes:
+      # Persist data — without this data disappears when container stops
+      - mongodb_data:/data/db
+    ports:
+      - "27017:27017"       # host:container port mapping
+    networks:
+      - app-network
+
+  # ─── Redis ────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine   # official Redis image, alpine = small
+    container_name: ai-job-tracker-redis
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data    # persist Redis data
+    ports:
+      - "6379:6379"
+    networks:
+      - app-network
+
+  # ─── Backend ──────────────────────────────────────────────
+  backend:
+    build:
+      context: .                    # build from monorepo root
+      dockerfile: apps/server/Dockerfile
+    container_name: ai-job-tracker-backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      # mongodb and redis are service names — Docker resolves them
+      MONGODB_URI: mongodb://admin:password123@mongodb:27017/ai-job-tracker?authSource=admin
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET}           # from .env file
+      JWT_EXPIRES_IN: 7d
+      GROQ_API_KEY: ${GROQ_API_KEY}   # from .env file
+    ports:
+      - "5000:5000"
+    depends_on:
+      - mongodb   # wait for mongodb to start first
+      - redis     # wait for redis to start first
+    networks:
+      - app-network
+
+  # ─── Frontend ─────────────────────────────────────────────
+  frontend:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: ai-job-tracker-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"             # serve on port 80 (standard HTTP)
+    depends_on:
+      - backend
+    networks:
+      - app-network
+
+# ─── Volumes ──────────────────────────────────────────────
+# Named volumes — Docker manages these
+# Data persists across container restarts
+volumes:
+  mongodb_data:
+  redis_data:
+
+# ─── Network ──────────────────────────────────────────────
+# All containers on same network can talk to each other
+# by service name — "mongodb", "redis", "backend"
+networks:
+  app-network:
+    driver: bridge
