@@ -126,25 +126,14 @@ export const analyzeResumeMatch = async (
 
   console.log("🤖 Analyzing resume match with Groq...")
 
-  const prompt = `
-You are an expert technical recruiter analyzing a candidate's 
-profile against a job description.
+  const prompt = `You are a technical recruiter. Analyze the candidate's skills against the job description and return ONLY a JSON object with no other text.
 
-Candidate's Current Skills:
-${userSkills}
+Candidate Skills: ${userSkills}
 
-Job Description:
-${jobDescription}
+Job Description: ${jobDescription}
 
-Analyze the match and respond with ONLY a valid JSON object 
-in this exact format (no markdown, no backticks, just raw JSON):
-{
-  "matchScore": <number between 0-100>,
-  "presentSkills": [<skills candidate has that job requires>],
-  "missingSkills": [<skills job requires but candidate lacks>],
-  "suggestions": [<3 specific actionable suggestions to improve match>]
-}
-`
+Return only this JSON with no markdown, no explanation, no extra text:
+{"matchScore":0,"presentSkills":[],"missingSkills":[],"suggestions":[]}`
 
 const groq = getGroqClient()
 
@@ -161,7 +150,7 @@ const completion = await groq.chat.completions.create({
 
 const responseText =
   completion.choices[0]?.message?.content || ""
-
+console.log("🤖 Raw AI response for match:", responseText)
 // Parse JSON response
 // Clean any markdown formatting if AI adds it
 // More aggressive cleaning
