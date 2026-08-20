@@ -164,12 +164,19 @@ const responseText =
 
 // Parse JSON response
 // Clean any markdown formatting if AI adds it
-const cleanJson = responseText
-  .replace(/```json/g, "")
+// More aggressive cleaning
+let cleanJson = responseText
+  .replace(/```json/gi, "")
   .replace(/```/g, "")
   .trim()
 
-const analysis = JSON.parse(cleanJson)
+// Find JSON object in response — in case AI adds text before/after
+const jsonMatch = cleanJson.match(/\{[\s\S]*\}/)
+if (!jsonMatch) {
+  throw new Error("AI did not return valid JSON")
+}
+
+const analysis = JSON.parse(jsonMatch[0])
 
 await setCache(cacheKey, analysis, AI_CACHE_TTL)
 
@@ -236,12 +243,20 @@ const completion = await groq.chat.completions.create({
 const responseText =
   completion.choices[0]?.message?.content || ""
 
-const cleanJson = responseText
-  .replace(/```json/g, "")
+// More aggressive cleaning
+let cleanJson = responseText
+  .replace(/```json/gi, "")
   .replace(/```/g, "")
   .trim()
 
-const questions = JSON.parse(cleanJson)
+// Find JSON object in response — in case AI adds text before/after
+const jsonMatch = cleanJson.match(/\{[\s\S]*\}/)
+if (!jsonMatch) {
+  throw new Error("AI did not return valid JSON")
+}
+
+const questions = JSON.parse(jsonMatch[0])
+
 
 await setCache(cacheKey, questions, AI_CACHE_TTL)
 
