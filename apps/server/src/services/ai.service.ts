@@ -1,7 +1,7 @@
 import Groq from "groq-sdk"
 import crypto from "crypto"
 import { getCache, setCache } from "../utils/cache.utils"
-
+const GROQ_MODEL = "llama-3.1-8b-instant"
 // ─── Initialize Gemini ────────────────────────────────────
 // Read API key at call time — not module level
 // Same lesson as JWT_SECRET — never read process.env at top level
@@ -85,7 +85,7 @@ const completion = await groq.chat.completions.create({
       content: prompt
     }
   ],
-  model: "llama3-8b-8192",
+  model: GROQ_MODEL,
   temperature: 0.2
 })
 
@@ -155,7 +155,7 @@ const completion = await groq.chat.completions.create({
       content: prompt
     }
   ],
-  model: "llama-3.3-70b-versatile",
+  model: GROQ_MODEL,
   temperature: 0.2
 })
 
@@ -229,7 +229,7 @@ const completion = await groq.chat.completions.create({
       content: prompt
     }
   ],
-  model: "llama-3.3-70b-versatile",
+  model: GROQ_MODEL,
   temperature: 0.2
 })
 
