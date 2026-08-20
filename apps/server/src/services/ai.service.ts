@@ -1,7 +1,7 @@
 import Groq from "groq-sdk"
 import crypto from "crypto"
 import { getCache, setCache } from "../utils/cache.utils"
-const GROQ_MODEL = "llama-3.1-8b-instant"
+const GROQ_MODEL = "openai/gpt-oss-20b"
 // ─── Initialize Gemini ────────────────────────────────────
 // Read API key at call time — not module level
 // Same lesson as JWT_SECRET — never read process.env at top level
